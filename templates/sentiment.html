@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<script src="static/moment/moment.js"></script>
+<script src="static/chart.js/dist/Chart.js"></script>
+{% endblock %}
+
+{% block content %}
+
+
+<canvas id="sentiment-chart" width="600" height="400"></canvas>
+
+<script>
+ // Some suggestions taken from
+ // https://blog.vanila.io/chart-js-tutorial-how-to-make-gradient-line-chart-af145e5c92f9
+ // and
+ // https://github.com/chartjs/Chart.js/blob/master/samples/advanced/progress-bar.html
+ // with thanks.
+
+ var hashtag = sessionStorage.getItem("hashtag");
+ if (hashtag === null) {
+     console.log("hashtag not set in storage yet, setting " +
+		 "it to {{ hashtag }} now.");
+     sessionStorage.setItem("hashtag", "{{ hashtag }}");
+     hashtag = "{{ hashtag }}";
+ }
+ var lastid = sessionStorage.getItem("lastid");
+ if (lastid === null) {
+     console.log("lastid not set in storage yet, setting " +
+		 "it to {{ lastid }} now.");
+     sessionStorage.setItem("lastid", "{{ lastid }}");
+     lastid = "{{ lastid }}";
+ }
+
+ function getNewData() {
+     var xhr = new XMLHttpRequest();
+     xhr.open("GET", "/sentiment?hashtag="+hashtag+"&lastid="+lastid, true);
+     xhr.onload = function (e) {
+	 if (xhr.readyState === 4) {
+	     if (xhr.status === 200) {
+		 console.log(xhr.responseText);
+	     } else {
+		 console.error(xhr.statusText);
+	     }
+	 }
+	 return (xhr.responseText);
+     };
+     xhr.onerror = function (e) {
+	 console.error(xhr.statusText);
+     };
+     xhr.send(null);
+ }
+
+ var config = {
+     type: 'line',
+     data: {
+         datasets: [{
+	     label: "Sentiment analysis for #{{ hashtag }}",
+             //data: [{{ chartdata|safe }}],
+	     data: getNewData,
+	     showLine: true,
+	     spanGaps: true,
+	     borderColor: "black",
+             pointBorderColor: "#80b6f4",
+             pointBackgroundColor: "#94d973",
+             pointHoverBackgroundColor: "#fad874",
+             pointBorderWidth: 10,
+             pointHoverRadius: 10,
+             pointHoverBorderWidth: 1,
+             pointRadius: 3,
+             fill: true,
+             borderWidth: 4,
+	     cubicInterpolation: "monotone"
+         }]
+     },
+     options: {
+	 animation: {
+	     duration: 30000,
+	     onComplete: function() {
+		 window.setTimeout(function() {
+		     data = getNewData();
+		 }, 30000);
+	     }
+	 },
+         legend: {
+             position: "bottom"
+         },
+         scales: {
+             yAxes: [{
+                 ticks: {
+                     fontColor: "rgba(0,0,0,0.5)",
+                     fontStyle: "bold",
+                     beginAtZero: true,
+                     padding: 20
+                 },
+                 gridLines: {
+                     drawTicks: true,
+                     display: true
+                 },
+		 stacked: true
+	     }],
+             xAxes: [{
+                 gridLines: {
+                     zeroLineColor: "#8080ff",
+		     display: true,
+		     drawTicks: true
+		 },
+		 
+                 ticks: {
+                     padding: 20,
+                     fontColor: "rgba(0,0,0,0.5)",
+                     fontStyle: "bold"
+                 }
+             }]
+         }
+     }
+ };
+
+ var ctx = document.getElementById('sentiment-chart').getContext('2d');
+
+ var gradientFill = ctx.createLinearGradient(500, 0, 100, 0);
+ gradientFill.addColorStop(0, "#80b6f4");
+ gradientFill.addColorStop(0.2, "#94d973");
+ gradientFill.addColorStop(0.5, "#fad874");
+ gradientFill.addColorStop(1, "#f49080");
+ 
+ var gradientStroke = ctx.createLinearGradient(500, 0, 100, 0);
+ gradientStroke.addColorStop(0, "#80b6f4");
+ gradientStroke.addColorStop(0.2, "#94d973");
+ gradientStroke.addColorStop(0.5, "#fad874");
+ gradientStroke.addColorStop(1, "#f49080");
+
+ window.myLine = new Chart(ctx, config);
+
+ /* Update the chart every 30 seconds */
+ window.setInterval("updateChart()", 30000);
+
+
+</script>
+    
+
+{% endblock %}

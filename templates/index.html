@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<form method="POST" action="/sentiment">
+    <div>{{ form.hashtag.label }}: {{ form.hashtag() }}</div>
+
+    <input class="inputbutton" type="submit" label="Check sentiment">
+</form>
+
+{% endblock %}

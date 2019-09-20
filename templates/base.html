@@ -1,0 +1,12 @@
+<!doctype html>
+<title>Sentiment Analysis for Australian Politics</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+<section class="content">
+  <header>
+    {% block header %}{% endblock %}
+  </header>
+  <br>
+  {% block content %}
+  {% endblock %}
+</section>
