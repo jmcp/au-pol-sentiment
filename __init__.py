@@ -34,24 +34,20 @@
 
 import datetime
 import json
-import os
 import re
 import string
 import sys
-import time
 
 from flask import Flask, make_response, render_template, request
-#from flask_cors import CORS, cross_origin
+
 from nltk.corpus import (twitter_samples, stopwords)
 from nltk.tokenize import TweetTokenizer
 from nltk.stem import PorterStemmer
-from nltk import classify
 from nltk import NaiveBayesClassifier
 
 from random import shuffle
 from twython import Twython
 
-from urllib.parse import quote
 from wtforms import Form, SelectField
 
 
@@ -79,11 +75,12 @@ consumer_secret = ""
 access_token = ""
 access_token_secret = ""
 
-tweet_tokenizer = TweetTokenizer(preserve_case=False, strip_handles=True, reduce_len=True)
+tweet_tokenizer = TweetTokenizer(preserve_case=False,
+                                 strip_handles=True, reduce_len=True)
 stemmer = PorterStemmer()
-stopwords_english = stopwords.words('english')
+stopwords_english = set(stopwords.words('english'))
 
-        
+
 # Happy Emoticons
 emoticons_happy = set([
     ':-)', ':)', ';)', ':o)', ':]', ':3', ':c)', ':>', '=]', '8)', '=)', ':}',
@@ -92,45 +89,46 @@ emoticons_happy = set([
     'x-p', 'xp', 'XP', ':-p', ':p', '=p', ':-b', ':b', '>:)', '>;)', '>:-)',
     '<3'
     ])
- 
+
 # Sad Emoticons
 emoticons_sad = set([
     ':L', ':-/', '>:/', ':S', '>:[', ':@', ':-(', ':[', ':-||', '=L', ':<',
     ':-[', ':-<', '=\\', '=/', '>:(', ':(', '>.<', ":'-(", ":'(", ':\\', ':-c',
     ':c', ':{', '>:\\', ';('
     ])
- 
+
 # all emoticons (happy + sad)
 emoticons = emoticons_happy.union(emoticons_sad)
+
+stoppers = set.union(stopwords_english, emoticons, set(string.punctuation))
 
 
 def clean_tweets(tweet):
     # remove stock market tickers like $GE
     tweet = re.sub(r'\$\w*', '', tweet)
     # remove old style retweet text "RT"
-    tweet = re.sub(r'^RT[\s]+', '', tweet) 
+    tweet = re.sub(r'^RT[\s]+', '', tweet)
     # remove hyperlinks
     tweet = re.sub(r'https?:\/\/.*[\r\n]*', '', tweet)
     # remove hashtags
     # only removing the hash # sign from the word
     tweet = re.sub(r'#', '', tweet)
     # tokenize tweets
-    tokenizer = TweetTokenizer(preserve_case=False, strip_handles=True, reduce_len=True)
+    tokenizer = TweetTokenizer(preserve_case=False,
+                               strip_handles=True, reduce_len=True)
     tweet_tokens = tokenizer.tokenize(tweet)
-    tweets_clean = []    
+    tweets_clean = []
     for word in tweet_tokens:
-        if (word not in stopwords_english and # remove stopwords
-              word not in emoticons and # remove emoticons
-                word not in string.punctuation): # remove punctuation
-            stem_word = stemmer.stem(word) # stemming word
-            tweets_clean.append(stem_word) 
+        if word not in stoppers:
+            stem_word = stemmer.stem(word)
+            tweets_clean.append(stem_word)
     return tweets_clean
 
 
 # feature extractor function
 def bag_of_words(tweet):
     words = clean_tweets(tweet)
-    words_dictionary = dict([word, True] for word in words)    
+    words_dictionary = dict([word, True] for word in words)
     return words_dictionary
 
 
@@ -146,7 +144,7 @@ class ChooserForm(Form):
                                    ("vicpol", "Victoria"),
                                    ("wapol", "Western Australia")])
 
-    
+
 def get_creds():
     """Read keys and secrets from the creds file"""
     global consumer_key, consumer_secret, access_token, access_token_secret
@@ -157,10 +155,10 @@ def get_creds():
     access_token_secret = app.config["ACCESS_TOKEN_SECRET"]
     if consumer_key == "" or consumer_secret == "":
         print("Consumer key/secret cannot be empty")
-        #sys.exit(1)
+        sys.exit(1)
     if access_token == "" or access_token_secret == "":
         print("Access token/secret cannot be empty")
-        #sys.exit(1)
+        sys.exit(1)
 
 
 # boilerplate and basic setup
@@ -174,9 +172,9 @@ twitter = Twython(consumer_key, consumer_secret,
 # positive tweets feature set
 pos_tweets_set = []
 for tweet in twitter_samples.strings('positive_tweets.json'):
-    pos_tweets_set.append((bag_of_words(tweet), 'pos'))    
- 
-    # negative tweets feature set
+    pos_tweets_set.append((bag_of_words(tweet), 'pos'))
+
+# negative tweets feature set
 neg_tweets_set = []
 for tweet in twitter_samples.strings('negative_tweets.json'):
     neg_tweets_set.append((bag_of_words(tweet), 'neg'))
@@ -211,20 +209,15 @@ def update(inhashtag, lastid):
                 tweet["created_at"],
                 "%a %b %d %H:%M:%S %z %Y").isoformat()[0:-6]
             labels.append("""moment("{stamp}")""".format(stamp=tstamp))
-            # This is *ugly* because we don't want the actual data points to
-            # be jsonified as it passes through the gateway. Sorry.
-            #datafmt = """'x': moment({stamp}, "\%x"), 'y': {value}"""
-            #data.append("{" + datafmt.format(
-            #    stamp=tstamp,value=100 * probres.prob("pos")) + "}")
             data.append(str(int(100 * probres.prob("pos"))))
     else:
-        print("No data returned in the last 30 seconds")        
+        print("No data returned in the last 30 seconds")
     results["chartdata"] = data
     results["labels"] = labels
     results["lastid"] = lastid
     return results
 
-    
+
 @app.route("/sentiment", methods=("POST", "GET"))
 def sentiment():
     # print("With associated Request\n{req}".format(req=dir(request)))
@@ -247,7 +240,7 @@ def sentiment():
     sentiments = update(hashtag, lastid)
     if request.method == "GET":
         return json.dumps(sentiments)
-    
+
     resp = make_response(
         render_template("sentiment.html",
                         hashtag=hashtag,
@@ -262,4 +255,3 @@ def index():
     form = ChooserForm()
     resp = make_response(render_template("index.html", form=form))
     return resp
-    
