@@ -164,7 +164,7 @@ def get_creds():
 
 
 # boilerplate and basic setup
-app = Flask("find-my-electorate")
+app = Flask("au-pol-sentiment")
 get_creds()
 
 twitter = Twython(consumer_key, consumer_secret,
@@ -195,6 +195,7 @@ def update(inhashtag, lastid):
     hashtag = "#" + inhashtag
     results = {}
     data = list()
+    data.append('data1')
     labels = list()
     # Note: the free search API gives us a max of 100 results
     tw = twitter.search(q=hashtag, result_type="recent", since_id=lastid)
@@ -226,12 +227,12 @@ def update(inhashtag, lastid):
     
 @app.route("/sentiment", methods=("POST", "GET"))
 def sentiment():
-    print("With associated Request\n{req}".format(req=dir(request)))
-    print("remote addr {0}".format(request.remote_addr),
-          "url {0}".format(request.url),
-          "host_url {0}".format(request.host_url),
-          "headers\n{0}".format(request.headers),
-          "args {0}".format(request.args))
+    # print("With associated Request\n{req}".format(req=dir(request)))
+    # print("remote addr {0}".format(request.remote_addr),
+    #      "url {0}".format(request.url),
+    #      "host_url {0}".format(request.host_url),
+    #      "headers\n{0}".format(request.headers),
+    #      "args {0}".format(request.args))
     # queries the hashtag, translates
     if request.method == "GET":
         hashtag = request.args["hashtag"]
@@ -244,18 +245,15 @@ def sentiment():
         else:
             lastid = ""
     sentiments = update(hashtag, lastid)
-    print(json.dumps(sentiments))
     if request.method == "GET":
-        print("called with GET {0}".format(request.args))
-        return json.dumps(sentiments["chartdata"])
+        return json.dumps(sentiments)
     
     resp = make_response(
         render_template("sentiment.html",
                         hashtag=hashtag,
                         lastid=sentiments["lastid"],
-                        chartdata=",".join(sentiments["chartdata"]),
+                        chartdata=json.dumps(sentiments["chartdata"]),
                         labels=",".join(sentiments["labels"])))
-    print("{0}".format(resp.data))
     return resp
 
 

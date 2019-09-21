@@ -1,21 +1,21 @@
 {% extends 'base.html' %}
 
 {% block header %}
-<script src="static/moment/moment.js"></script>
-<script src="static/chart.js/dist/Chart.js"></script>
+<link rel="stylesheet" href="/static/c3/c3.css">
+<script src="/static/d3/d3.js" charset="utf-8"></script>
+<script src="/static/c3/c3.js"></script>
 {% endblock %}
 
 {% block content %}
 
 
-<canvas id="sentiment-chart" width="600" height="400"></canvas>
+<div id="sentiment-chart" width="600" height="400"></div>
 
 <script>
- // Some suggestions taken from
- // https://blog.vanila.io/chart-js-tutorial-how-to-make-gradient-line-chart-af145e5c92f9
- // and
- // https://github.com/chartjs/Chart.js/blob/master/samples/advanced/progress-bar.html
- // with thanks.
+
+ var prevDataCol = [ {{ chartdata|safe }} ] ;
+ var newDataCol = [];
+ var lastid = "";
 
  var hashtag = sessionStorage.getItem("hashtag");
  if (hashtag === null) {
@@ -36,107 +36,68 @@
      var xhr = new XMLHttpRequest();
      xhr.open("GET", "/sentiment?hashtag="+hashtag+"&lastid="+lastid, true);
      xhr.onload = function (e) {
-	 if (xhr.readyState === 4) {
-	     if (xhr.status === 200) {
-		 console.log(xhr.responseText);
+	 if ((xhr.readyState === 4) && (xhr.status === 200)) {
+	     	     parsed = JSON.parse(xhr.responseText);
+	     sessionStorage.setItem("lastid", parsed["lastid"]);
+	     lastid = parsed["lastid"];
+	     // Did we get new data points?
+	     if (parsed["chartdata"].length > 1) {
+		 // yes	 
+		 newDataCol = [ parsed["chartdata"] ];
 	     } else {
-		 console.error(xhr.statusText);
+		 console.log("No new data returned")
+		 console.log("parsed['chartdata'] is: " +
+			     JSON.stringify(parsed["chartdata"]));
 	     }
 	 }
-	 return (xhr.responseText);
      };
      xhr.onerror = function (e) {
 	 console.error(xhr.statusText);
      };
      xhr.send(null);
- }
+ };
 
+ var labeltext =  "Sentiment analysis for #" + hashtag;
  var config = {
-     type: 'line',
+     bindto: document.getElementById("sentiment-chart"),
      data: {
-         datasets: [{
-	     label: "Sentiment analysis for #{{ hashtag }}",
-             //data: [{{ chartdata|safe }}],
-	     data: getNewData,
-	     showLine: true,
-	     spanGaps: true,
-	     borderColor: "black",
-             pointBorderColor: "#80b6f4",
-             pointBackgroundColor: "#94d973",
-             pointHoverBackgroundColor: "#fad874",
-             pointBorderWidth: 10,
-             pointHoverRadius: 10,
-             pointHoverBorderWidth: 1,
-             pointRadius: 3,
-             fill: true,
-             borderWidth: 4,
-	     cubicInterpolation: "monotone"
-         }]
-     },
-     options: {
-	 animation: {
-	     duration: 30000,
-	     onComplete: function() {
-		 window.setTimeout(function() {
-		     data = getNewData();
-		 }, 30000);
-	     }
+	 columns: prevDataCol,
+	 labels: true,
+	 names: {
+	     data1: labeltext
 	 },
-         legend: {
-             position: "bottom"
-         },
-         scales: {
-             yAxes: [{
-                 ticks: {
-                     fontColor: "rgba(0,0,0,0.5)",
-                     fontStyle: "bold",
-                     beginAtZero: true,
-                     padding: 20
-                 },
-                 gridLines: {
-                     drawTicks: true,
-                     display: true
-                 },
-		 stacked: true
-	     }],
-             xAxes: [{
-                 gridLines: {
-                     zeroLineColor: "#8080ff",
-		     display: true,
-		     drawTicks: true
-		 },
-		 
-                 ticks: {
-                     padding: 20,
-                     fontColor: "rgba(0,0,0,0.5)",
-                     fontStyle: "bold"
-                 }
-             }]
-         }
+	 type: 'spline'
+     },
+     axis: {
+	 x: {
+	     show: false,
+	     type: 'indexed'
+	 },
+	 y: {
+	     min: 0,
+	     max: 100
+	 }
      }
  };
 
- var ctx = document.getElementById('sentiment-chart').getContext('2d');
+ var chart = c3.generate(config);
 
- var gradientFill = ctx.createLinearGradient(500, 0, 100, 0);
- gradientFill.addColorStop(0, "#80b6f4");
- gradientFill.addColorStop(0.2, "#94d973");
- gradientFill.addColorStop(0.5, "#fad874");
- gradientFill.addColorStop(1, "#f49080");
- 
- var gradientStroke = ctx.createLinearGradient(500, 0, 100, 0);
- gradientStroke.addColorStop(0, "#80b6f4");
- gradientStroke.addColorStop(0.2, "#94d973");
- gradientStroke.addColorStop(0.5, "#fad874");
- gradientStroke.addColorStop(1, "#f49080");
-
- window.myLine = new Chart(ctx, config);
+ function updateChart() {
+     getNewData();
+     chart.flow({
+    	 columns: prevDataCol,
+	 done: function () {
+	     chart.flow({
+		 columns: newDataCol,
+		 length: (newDataCol[0].length - 1),
+		 line: { connectNull: true }
+	     })
+	 }
+     });
+     prevDataCol = newDataCol;
+ };
 
  /* Update the chart every 30 seconds */
- window.setInterval("updateChart()", 30000);
-
-
+ window.setInterval(updateChart, 30000);
 </script>
-    
-
 {% endblock %}
