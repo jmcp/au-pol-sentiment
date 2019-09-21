@@ -15,16 +15,15 @@
 
  var prevDataCol = [ {{ chartdata|safe }} ] ;
  var newDataCol = [];
- var lastid = "";
-
- var hashtag = sessionStorage.getItem("hashtag");
- if (hashtag === null) {
-     console.log("hashtag not set in storage yet, setting " +
-		 "it to {{ hashtag }} now.");
+ var hashtag = "{{ hashtag }}";
+ var savedht = sessionStorage.getItem("hashtag");
+ if (savedht === null || hashtag !== savedht) {
+     // Update our session storage
      sessionStorage.setItem("hashtag", "{{ hashtag }}");
-     hashtag = "{{ hashtag }}";
  }
+     
  var lastid = sessionStorage.getItem("lastid");
+
  if (lastid === null) {
      console.log("lastid not set in storage yet, setting " +
 		 "it to {{ lastid }} now.");
@@ -37,7 +36,7 @@
      xhr.open("GET", "/sentiment?hashtag="+hashtag+"&lastid="+lastid, true);
      xhr.onload = function (e) {
 	 if ((xhr.readyState === 4) && (xhr.status === 200)) {
-	     	     parsed = JSON.parse(xhr.responseText);
+	     parsed = JSON.parse(xhr.responseText);
 	     sessionStorage.setItem("lastid", parsed["lastid"]);
 	     lastid = parsed["lastid"];
 	     // Did we get new data points?
@@ -45,9 +44,7 @@
 		 // yes	 
 		 newDataCol = [ parsed["chartdata"] ];
 	     } else {
-		 console.log("No new data returned")
-		 console.log("parsed['chartdata'] is: " +
-			     JSON.stringify(parsed["chartdata"]));
+		 newDataCol = [];
 	     }
 	 }
      };
@@ -84,20 +81,38 @@
 
  function updateChart() {
      getNewData();
-     chart.flow({
-    	 columns: prevDataCol,
-	 done: function () {
-	     chart.flow({
-		 columns: newDataCol,
-		 length: (newDataCol[0].length - 1),
-		 line: { connectNull: true }
-	     })
-	 }
-     });
-     prevDataCol = newDataCol;
+     if (newDataCol !== []) {
+	 chart.flow({
+    	     columns: prevDataCol,
+	     done: function () {
+		 chart.flow({
+		     columns: newDataCol,
+		     line: { connectNull: true }
+		 })
+	     }
+	 });
+	 prevDataCol = newDataCol;
+     }
  };
 
  /* Update the chart every 30 seconds */
  window.setInterval(updateChart, 30000);
 </script>
+
+Sentiment Analysis allows us to determine whether a tweet is positive,
+negative or neutral. Tweet 'values' above 50% are positive, below 50%
+are negative, and at 50% are neutral. The closer a number is to 0 or
+100, the more pronounced the sentiment is.
+
+<form method="POST" action="/sentiment">
+    <div>
+	{{ form.hashtag.label }}: {{ form.hashtag() }}
+	<input class="inputbutton" type="submit" label="Check sentiment">
+    </div>
+</form>
+
+<div class="scrolling-tweets"></div>
+
+
+
 {% endblock %}
