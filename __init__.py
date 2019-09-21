@@ -195,7 +195,7 @@ def update(inhashtag, lastid):
     data = list()
     data.append('data1')
     labels = list()
-    # Note: the free search API gives us a max of 100 results
+    # Note: the free search API gives us a maximum of 100 results
     tw = twitter.search(q=hashtag, result_type="recent", since_id=lastid)
     if len(tw["statuses"]) > 0:
         lastid = tw["statuses"][-1]["id"]
@@ -204,11 +204,12 @@ def update(inhashtag, lastid):
             url = "https://twitter.com/" + tweet["user"]["screen_name"]
             url += "/status/" + str(tweet["id"])
             probres = classifier.prob_classify(bag_of_words(tweet["text"]))
-            # Create an ISO-like timestamp, without UTC offset
+            # Create an ISO-like timestamp, without UTC offset.
+            # We're not currently using this in the rendered page.
             tstamp = datetime.datetime.strptime(
                 tweet["created_at"],
                 "%a %b %d %H:%M:%S %z %Y").isoformat()[0:-6]
-            labels.append("""moment("{stamp}")""".format(stamp=tstamp))
+            labels.append("""{stamp}""".format(stamp=tstamp))
             data.append(str(int(100 * probres.prob("pos"))))
     else:
         print("No data returned in the last 30 seconds")
@@ -220,13 +221,6 @@ def update(inhashtag, lastid):
 
 @app.route("/sentiment", methods=("POST", "GET"))
 def sentiment():
-    # print("With associated Request\n{req}".format(req=dir(request)))
-    # print("remote addr {0}".format(request.remote_addr),
-    #      "url {0}".format(request.url),
-    #      "host_url {0}".format(request.host_url),
-    #      "headers\n{0}".format(request.headers),
-    #      "args {0}".format(request.args))
-    # queries the hashtag, translates
     if request.method == "GET":
         hashtag = request.args["hashtag"]
         lastid = request.args["lastid"]
@@ -241,17 +235,15 @@ def sentiment():
     if request.method == "GET":
         return json.dumps(sentiments)
 
-    resp = make_response(
-        render_template("sentiment.html",
-                        hashtag=hashtag,
-                        lastid=sentiments["lastid"],
-                        chartdata=json.dumps(sentiments["chartdata"]),
-                        labels=",".join(sentiments["labels"])))
-    return resp
+    return render_template("sentiment.html",
+                           form=ChooserForm(),
+                           hashtag=hashtag,
+                           lastid=sentiments["lastid"],
+                           chartdata=json.dumps(sentiments["chartdata"]),
+                           labels=",".join(sentiments["labels"]))
 
 
 @app.route("/")
 def index():
-    form = ChooserForm()
-    resp = make_response(render_template("index.html", form=form))
-    return resp
+    return render_template("index.html", form=ChooserForm())
+
