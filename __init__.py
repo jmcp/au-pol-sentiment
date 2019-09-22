@@ -32,13 +32,14 @@
 # http://blog.chapagain.com.np/python-nltk-twitter-sentiment-analysis-natural-language-processing-nlp/
 # Thankyou to @chapagain for getting me started
 
-import datetime
+# import datetime
+
 import json
 import re
 import string
 import sys
 
-from flask import Flask, make_response, render_template, request
+from flask import Flask, render_template, request
 
 from nltk.corpus import (twitter_samples, stopwords)
 from nltk.tokenize import TweetTokenizer
@@ -195,6 +196,7 @@ def update(inhashtag, lastid):
     data = list()
     data.append('data1')
     labels = list()
+    labels.append('data1')
     # Note: the free search API gives us a maximum of 100 results
     tw = twitter.search(q=hashtag, result_type="recent", since_id=lastid)
     if len(tw["statuses"]) > 0:
@@ -206,10 +208,10 @@ def update(inhashtag, lastid):
             probres = classifier.prob_classify(bag_of_words(tweet["text"]))
             # Create an ISO-like timestamp, without UTC offset.
             # We're not currently using this in the rendered page.
-            tstamp = datetime.datetime.strptime(
-                tweet["created_at"],
-                "%a %b %d %H:%M:%S %z %Y").isoformat()[0:-6]
-            labels.append("""{stamp}""".format(stamp=tstamp))
+            # tstamp = datetime.datetime.strptime(
+            #    tweet["created_at"],
+            #    "%a %b %d %H:%M:%S %z %Y").isoformat()[0:-6]
+            labels.append("""{url}""".format(url=url))
             data.append(str(int(100 * probres.prob("pos"))))
     else:
         print("No data returned in the last 30 seconds")
@@ -246,4 +248,3 @@ def sentiment():
 @app.route("/")
 def index():
     return render_template("index.html", form=ChooserForm())
-

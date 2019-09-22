@@ -13,15 +13,22 @@
 
 <script>
 
+ /*
+  * Store the index of our current data set, relative to the
+  * very first data point that we rendered. This is to enable
+  * the label lookup.
+  */
+ var curidx = 0;
  var prevDataCol = [ {{ chartdata|safe }} ] ;
  var newDataCol = [];
+ var labels = [ {{ labeldata|safe}} ];
  var hashtag = "{{ hashtag }}";
  var savedht = sessionStorage.getItem("hashtag");
  if (savedht === null || hashtag !== savedht) {
      // Update our session storage
      sessionStorage.setItem("hashtag", "{{ hashtag }}");
  }
-     
+ 
  var lastid = sessionStorage.getItem("lastid");
 
  if (lastid === null) {
@@ -39,10 +46,12 @@
 	     parsed = JSON.parse(xhr.responseText);
 	     sessionStorage.setItem("lastid", parsed["lastid"]);
 	     lastid = parsed["lastid"];
+	     labels = parsed["labels"];
 	     // Did we get new data points?
 	     if (parsed["chartdata"].length > 1) {
 		 // yes	 
 		 newDataCol = [ parsed["chartdata"] ];
+		 curidx += parsed["chartdata"].length - 1;
 	     } else {
 		 newDataCol = [];
 	     }
@@ -71,8 +80,12 @@
 	     type: 'indexed'
 	 },
 	 y: {
+	     /*
+	      * I really want 0-100, but setting those vals here
+	      * doesn't work with c3.js - it gives -10 - 100!
+	      */
 	     min: 0,
-	     max: 100
+	     max: 95
 	 }
      }
  };
