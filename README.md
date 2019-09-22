@@ -7,7 +7,7 @@ on the tweets returned using [@chapagain][chapagain]'s methods, and then graphs
 the result using [C3js][c3js].
 
 All code in this repo is available for you to use under the
-terms of the MIT license. Please review [LICENSE][LICENSE] for details.
+terms of the [First Do No Harm][firstdonoharm] license. Please review [LICENSE][LICENSE] for details.
 
 ----
 
@@ -15,3 +15,4 @@ terms of the MIT license. Please review [LICENSE][LICENSE] for details.
   [twitter]: https://twitter.com
   [chapagain]: http://blog.chapagain.com.np/python-nltk-twitter-sentiment-analysis-natural-language-processing-nlp/
   [c3js]: https://c3js.org
+  [firstdonoharm]: https://firstdonoharm.dev
