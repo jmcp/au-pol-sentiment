@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.7
+#!/usr/bin/env python3.7 -E
 
 #
 # Copyright (c) 2019, James C. McPherson. All Rights Reserved.

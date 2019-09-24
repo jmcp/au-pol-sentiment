@@ -1,0 +1,17 @@
+uwsgi:
+    uid: www-data
+    gid: www-data
+    socket: 127.0.0.1:8003
+    master: 1
+    workers: 5
+    chdir: /app/au-pol-sentiment
+    plugin: python3
+    wsgi-file: /app/au-pol-sentiment/__init__.py
+    callable: app
+    pidfile: /tmp/uwsgi.pid
+
+au-pol-sentiment:
+    callable: app
+    plugin: python3
+
+
