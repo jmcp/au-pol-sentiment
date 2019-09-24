@@ -1,0 +1,11 @@
+creds*
+.git/*
+*.pyc
+*.pyo
+*.zip
+*.gz
+*.tar
+*.tgz
+static/?3*
+__pycache__*
+
